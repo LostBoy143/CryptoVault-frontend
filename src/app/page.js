@@ -8,14 +8,29 @@ export default function HomePage() {
   return (
     <main className="bg-linear-to-b from-[#050816] via-[#0a0f2c] to-[#0f172a] text-white overflow-x-hidden">
       {/* Hero Section */}
-      <section className="min-h-[90vh] flex flex-col justify-center items-center text-center px-6 py-16 relative">
-        {/* Background glow effect */}
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[600px] h-[600px] bg-blue-500/30 rounded-full blur-[180px] opacity-60 -z-10" />
+      <section className="relative min-h-[90vh] flex flex-col justify-center items-center text-center px-6 py-16 overflow-hidden bg-gradient-to-b from-gray-950 via-[#0a0f1f] to-gray-950">
+        {/* Animated Gradient Orbs */}
+        <div className="absolute top-[-100px] left-[-150px] w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[140px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[-100px] right-[-150px] w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[140px] animate-pulse-slow"></div>
 
+        {/* Subtle Grid Pattern Overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        ></div>
+
+        {/* Faint Center Glow */}
+        <div className="absolute top-1/2 left-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[200px] -translate-x-1/2 -translate-y-1/2 -z-10"></div>
+
+        {/* Hero Content */}
         <Reveal>
           <h1 className="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
             Track. Analyze. Grow. <br />
-            <span className="text-blue-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-green-400 drop-shadow-md">
               Your Crypto Portfolio.
             </span>
           </h1>
@@ -25,8 +40,8 @@ export default function HomePage() {
           <p className="text-gray-300 text-md md:text-lg mb-8 max-w-2xl">
             Track, analyze, and grow your digital
             assets in real-time. A modern crypto
-            tracker that looks as good as it
-            performs.
+            tracker built for the next generation
+            of investors.
           </p>
         </Reveal>
 
@@ -37,23 +52,21 @@ export default function HomePage() {
               onClick={() =>
                 router.push("/coins")
               }
-              className="bg-blue-600 hover:bg-blue-700 px-10 py-3 rounded-lg font-semibold cursor-pointer shadow-md shadow-blue-500/30 transition"
+              className="bg-blue-600 hover:bg-blue-700 px-10 py-3 rounded-lg font-semibold cursor-pointer shadow-[0_0_20px_#3b82f680] transition-transform transform hover:scale-[1.05]"
             >
               Explore Coins
             </button>
 
-            {/* View Dashboard button with auth check */}
+            {/* View Dashboard button */}
             <button
               onClick={() => {
                 const token =
                   localStorage.getItem("token");
-                if (token) {
+                if (token)
                   router.push("/dashboard");
-                } else {
-                  router.push("/login");
-                }
+                else router.push("/login");
               }}
-              className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-md shadow-green-400/30 transition"
+              className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-[0_0_20px_#34d39980] transition-transform transform hover:scale-[1.05]"
             >
               View Dashboard
             </button>
