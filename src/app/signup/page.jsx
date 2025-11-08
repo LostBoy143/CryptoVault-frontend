@@ -7,6 +7,7 @@ import {
 } from "@/utils/toastManager";
 
 export default function Signup() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
@@ -16,6 +17,16 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+
+    if (!name || !email || !password) {
+      showToast(
+        "signupEmpty",
+        "Please fill all fields",
+        "error"
+      );
+      return;
+    }
+
     showToast(
       "signupLoading",
       "Creating your account...",
@@ -31,8 +42,9 @@ export default function Signup() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email,
-            password,
+            name: name.trim(),
+            email: email.trim(),
+            password: password.trim(),
           }),
         }
       );
@@ -40,12 +52,14 @@ export default function Signup() {
       clearAllToasts();
 
       if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("token", data.token);
         showToast(
           "signupSuccess",
           "Account created successfully!",
           "success"
         );
-        router.push("/login");
+        router.push("/dashboard");
       } else {
         const err = await res.json();
         showToast(
@@ -74,11 +88,24 @@ export default function Signup() {
           Create Account
         </h1>
         <p className="text-gray-400 mb-6 text-center text-sm">
-          Join CryptoVault and start tracking your
-          portfolio today
+          Join CryptoVault to start tracking your
+          crypto assets today.
         </p>
 
-        {/* Email Input */}
+        <label className="block mb-2 text-sm font-medium">
+          Full Name
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
+          className="w-full p-2 rounded bg-gray-800 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="Enter your full name"
+          required
+        />
+
         <label className="block mb-2 text-sm font-medium">
           Email
         </label>
@@ -89,11 +116,10 @@ export default function Signup() {
             setEmail(e.target.value)
           }
           className="w-full p-2 rounded bg-gray-800 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="you@example.com"
+          placeholder="Enter your email"
           required
         />
 
-        {/* Password Input */}
         <label className="block mb-2 text-sm font-medium">
           Password
         </label>
@@ -104,11 +130,10 @@ export default function Signup() {
             setPassword(e.target.value)
           }
           className="w-full p-2 rounded bg-gray-800 mb-6 focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="••••••••"
+          placeholder="At least 8 characters"
           required
         />
 
-        {/* Submit Button */}
         <button
           type="submit"
           className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold cursor-pointer transition"
@@ -116,14 +141,13 @@ export default function Signup() {
           Sign Up
         </button>
 
-        {/* Redirect to Login */}
         <p className="text-gray-400 text-sm text-center mt-4">
           Already have an account?{" "}
           <span
             onClick={() => router.push("/login")}
             className="text-green-400 hover:text-green-500 cursor-pointer font-medium"
           >
-            Log in here
+            Log in
           </span>
         </p>
       </form>

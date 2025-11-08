@@ -16,6 +16,16 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (!email || !password) {
+      showToast(
+        "loginEmpty",
+        "Please fill all fields",
+        "error"
+      );
+      return;
+    }
+
     showToast(
       "loginLoading",
       "Logging in...",
@@ -31,8 +41,8 @@ export default function Login() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email,
-            password,
+            email: email.trim(),
+            password: password.trim(),
           }),
         }
       );
@@ -60,7 +70,7 @@ export default function Login() {
       clearAllToasts();
       showToast(
         "loginFail",
-        "Network error. Try again.",
+        "Network error. Try again later.",
         "error"
       );
     }
@@ -76,11 +86,9 @@ export default function Login() {
           Welcome Back
         </h1>
         <p className="text-gray-400 mb-6 text-center text-sm">
-          Log in to continue tracking your
-          portfolio
+          Login to access your crypto dashboard
         </p>
 
-        {/* Email Input */}
         <label className="block mb-2 text-sm font-medium">
           Email
         </label>
@@ -91,11 +99,10 @@ export default function Login() {
             setEmail(e.target.value)
           }
           className="w-full p-2 rounded bg-gray-800 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="you@example.com"
+          placeholder="Enter your email"
           required
         />
 
-        {/* Password Input */}
         <label className="block mb-2 text-sm font-medium">
           Password
         </label>
@@ -106,11 +113,10 @@ export default function Login() {
             setPassword(e.target.value)
           }
           className="w-full p-2 rounded bg-gray-800 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="••••••••"
+          placeholder="Enter your password"
           required
         />
 
-        {/* Login Button */}
         <button
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-semibold cursor-pointer transition"
@@ -118,14 +124,13 @@ export default function Login() {
           Log In
         </button>
 
-        {/* Signup Redirect */}
         <p className="text-gray-400 text-sm text-center mt-4">
-          New to CryptoVault?{" "}
+          Don’t have an account?{" "}
           <span
             onClick={() => router.push("/signup")}
             className="text-blue-400 hover:text-blue-500 cursor-pointer font-medium"
           >
-            Create an account
+            Sign up
           </span>
         </p>
       </form>
