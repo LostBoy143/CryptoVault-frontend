@@ -14,32 +14,39 @@ export default function Navbar() {
     useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // 🔁 Check login status and update reactively
+  // ✅ Function to check auth status
+  const checkAuth = () => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  };
+
+  // ✅ Run on mount + whenever route changes
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("token");
-      setIsLoggedIn(!!token);
-    };
     checkAuth();
-    window.addEventListener("storage", checkAuth);
-    return () =>
+  }, [pathname]); // re-check on every page change
+
+  // ✅ Listen for custom login/logout events
+  useEffect(() => {
+    const handleAuthChange = () => checkAuth();
+    window.addEventListener(
+      "authChange",
+      handleAuthChange
+    );
+    return () => {
       window.removeEventListener(
-        "storage",
-        checkAuth
+        "authChange",
+        handleAuthChange
       );
+    };
   }, []);
 
   // ✅ Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
+    // Broadcast auth change
+    window.dispatchEvent(new Event("authChange"));
     router.push("/login");
-  };
-
-  // ✅ Dashboard redirect logic
-  const handleDashboardClick = () => {
-    const token = localStorage.getItem("token");
-    router.push(token ? "/dashboard" : "/login");
   };
 
   // ✅ Active link style helper
@@ -74,8 +81,6 @@ export default function Navbar() {
         >
           Coins
         </Link>
-
-        {/* Dashboard (as Link) */}
         <Link
           href={
             isLoggedIn ? "/dashboard" : "/login"
