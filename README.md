@@ -33,9 +33,13 @@ The CryptoVault Frontend is a modern, responsive web interface built using Next.
    npm install
    ```
 3. Create a `.env.local` file and add your backend API URL:
+
    ```bash
    NEXT_PUBLIC_API_URL=http://localhost:5000
+   NEXT_PUBLIC_COINGECKO_API=https://api.coingecko.com/api/v3
+
    ```
+
 4. Run the development server:
    ```bash
    npm run dev

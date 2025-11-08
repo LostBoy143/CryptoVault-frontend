@@ -1,61 +1,59 @@
 "use client";
 import { useEffect, useState } from "react";
-
-export const dynamic = "force-dynamic"; // Prevent SSR hydration mismatch
+import toast from "react-hot-toast";
 
 export default function Dashboard() {
   const [assets, setAssets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchingPrices, setFetchingPrices] =
-    useState(false);
+  const [coins, setCoins] = useState([]);
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    symbol: "",
+    quantity: "",
+    buyPrice: "",
+  });
   const [totalValue, setTotalValue] = useState(0);
-  const [isClient, setIsClient] = useState(false);
 
-  // ✅ Ensure logic runs only on client to avoid hydration mismatches
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_URL;
+
+  // ✅ Fetch available coins (top 100)
   useEffect(() => {
-    setIsClient(true);
+    fetch(
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1"
+    )
+      .then((res) => res.json())
+      .then((data) => setCoins(data))
+      .catch(() =>
+        toast.error("Failed to load coins data")
+      );
   }, []);
 
-  useEffect(() => {
-    if (isClient) {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        window.location.href = "/login";
-      } else {
-        fetchAssets();
-      }
-    }
-  }, [isClient]);
-
+  // ✅ Fetch user's assets
   const fetchAssets = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
       const res = await fetch(
-        "http://localhost:5000/api/assets",
+        `${API_BASE}/api/assets`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
+      if (!res.ok)
+        throw new Error("Error fetching assets");
       const data = await res.json();
       setAssets(data);
-      setLoading(false);
     } catch (err) {
-      console.error(
-        "Error fetching assets:",
-        err
-      );
-      setLoading(false);
+      toast.error("Unable to load portfolio.");
     }
   };
 
+  // ✅ Fetch live prices & calculate portfolio total
   const fetchPrices = async () => {
     if (assets.length === 0) return;
-    setFetchingPrices(true);
-
     const ids = assets
       .map((a) => a.name.toLowerCase())
       .join(",");
@@ -69,25 +67,20 @@ export default function Dashboard() {
       const updated = assets.map((a) => {
         const currentPrice =
           prices[a.name.toLowerCase()]?.usd || 0;
-        const currentValue =
-          currentPrice * a.quantity;
-        const buyValue = a.buyPrice * a.quantity;
+        const value = currentPrice * a.quantity;
+        total += value;
         const profitLoss =
-          currentValue - buyValue;
+          (currentPrice - a.buyPrice) *
+          a.quantity;
         const profitLossPercent =
-          buyValue > 0
-            ? (
-                (profitLoss / buyValue) *
-                100
-              ).toFixed(2)
-            : "0.00";
-
-        total += currentValue;
+          ((currentPrice - a.buyPrice) /
+            a.buyPrice) *
+          100;
 
         return {
           ...a,
           currentPrice,
-          currentValue,
+          value,
           profitLoss,
           profitLossPercent,
         };
@@ -95,50 +88,213 @@ export default function Dashboard() {
 
       setAssets(updated);
       setTotalValue(total);
-    } catch (err) {
-      console.error(
-        "Error fetching prices:",
-        err
-      );
-    } finally {
-      setFetchingPrices(false);
+    } catch {
+      toast.error("Failed to fetch live prices.");
     }
   };
 
   useEffect(() => {
-    if (assets.length > 0 && isClient)
-      fetchPrices();
-  }, [assets.length, isClient]);
+    fetchAssets();
+  }, []);
 
-  // 🔄 Loader during initial fetch
-  if (loading || !isClient) {
-    return (
-      <main className="min-h-screen bg-gradient-to-b from-[#050816] via-[#0a0f2c] to-[#0f172a] text-white flex flex-col justify-center items-center">
-        <div className="loader mb-4"></div>
-        <p className="text-gray-400 animate-pulse">
-          Loading your portfolio...
-        </p>
-      </main>
+  useEffect(() => {
+    if (assets.length > 0) fetchPrices();
+  }, [assets.length]);
+
+  // ✅ Handle input changes
+  const handleChange = (e) =>
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+
+  const handleSelectCoin = (coin) => {
+    setForm({
+      ...form,
+      name: coin.id,
+      symbol: coin.symbol.toUpperCase(),
+    });
+    setSearch("");
+  };
+
+  // ✅ Add new asset with toast feedback
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    const toastId = toast.loading(
+      "Adding asset..."
     );
-  }
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/assets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(form),
+        }
+      );
+
+      toast.dismiss(toastId);
+
+      if (res.ok) {
+        const newAsset = await res.json();
+        setAssets([newAsset, ...assets]);
+        setForm({
+          name: "",
+          symbol: "",
+          quantity: "",
+          buyPrice: "",
+        });
+        toast.success(
+          "Asset added successfully!"
+        );
+      } else {
+        const err = await res.json();
+        toast.error(
+          err.message || "Failed to add asset."
+        );
+      }
+    } catch {
+      toast.dismiss(toastId);
+      toast.error(
+        "Network error. Try again later."
+      );
+    }
+  };
+
+  // ✅ Delete asset with toast feedback
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem("token");
+    const toastId = toast.loading(
+      "Removing asset..."
+    );
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/assets/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toast.dismiss(toastId);
+
+      if (res.ok) {
+        setAssets(
+          assets.filter((a) => a._id !== id)
+        );
+        toast.success(
+          "Asset removed successfully!"
+        );
+      } else {
+        toast.error("Failed to remove asset.");
+      }
+    } catch {
+      toast.dismiss(toastId);
+      toast.error("Something went wrong.");
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#050816] via-[#0a0f2c] to-[#0f172a] text-white p-4 md:p-8">
+    <main className="min-h-screen bg-gray-950 text-white p-6 md:p-8">
       <h1 className="text-3xl font-bold mb-6 text-center md:text-left">
         💰 Your Crypto Portfolio
       </h1>
 
-      <div className="mb-6 text-lg font-semibold text-center md:text-left">
+      {/* Add Form */}
+      <form
+        onSubmit={handleAdd}
+        className="mb-8 flex flex-wrap gap-4 items-end justify-center md:justify-start"
+      >
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search or Select Coin"
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            className="p-2 rounded bg-gray-800 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {search && (
+            <div className="absolute top-10 bg-gray-900 border border-gray-700 w-64 max-h-48 overflow-y-auto rounded-lg shadow-lg z-10">
+              {coins
+                .filter(
+                  (c) =>
+                    c.name
+                      .toLowerCase()
+                      .includes(
+                        search.toLowerCase()
+                      ) ||
+                    c.symbol
+                      .toLowerCase()
+                      .includes(
+                        search.toLowerCase()
+                      )
+                )
+                .map((coin) => (
+                  <div
+                    key={coin.id}
+                    onClick={() =>
+                      handleSelectCoin(coin)
+                    }
+                    className="flex items-center gap-2 p-2 hover:bg-gray-800 cursor-pointer"
+                  >
+                    <img
+                      src={coin.image}
+                      alt={coin.name}
+                      className="w-5 h-5"
+                    />
+                    <span>
+                      {coin.name} (
+                      {coin.symbol.toUpperCase()})
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        <input
+          name="quantity"
+          type="number"
+          placeholder="Quantity"
+          value={form.quantity}
+          onChange={handleChange}
+          className="p-2 rounded bg-gray-800 w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          name="buyPrice"
+          type="number"
+          placeholder="Buy Price (USD)"
+          value={form.buyPrice}
+          onChange={handleChange}
+          className="p-2 rounded bg-gray-800 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold cursor-pointer"
+        >
+          Add
+        </button>
+      </form>
+
+      <div className="mb-4 text-lg font-semibold text-center md:text-left">
         Total Portfolio Value:{" "}
         <span className="text-green-400">
-          ${Number(totalValue || 0).toFixed(2)}
+          ${totalValue.toFixed(2)}
         </span>
       </div>
 
+      {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-sm md:text-base">
+        <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
-            <tr className="border-b border-gray-700">
+            <tr className="border-b border-gray-700 text-sm text-gray-400">
               <th className="p-2">Coin</th>
               <th className="p-2">Symbol</th>
               <th className="p-2">Quantity</th>
@@ -147,7 +303,7 @@ export default function Dashboard() {
                 Current Price
               </th>
               <th className="p-2">Total Value</th>
-              <th className="p-2">P&amp;L</th>
+              <th className="p-2">P/L (%)</th>
               <th className="p-2">Actions</th>
             </tr>
           </thead>
@@ -155,12 +311,12 @@ export default function Dashboard() {
             {assets.map((asset) => (
               <tr
                 key={asset._id}
-                className="border-b border-gray-800 hover:bg-gray-900/40 transition"
+                className="border-b border-gray-800"
               >
                 <td className="p-2">
                   {asset.name}
                 </td>
-                <td className="p-2 uppercase">
+                <td className="p-2">
                   {asset.symbol}
                 </td>
                 <td className="p-2">
@@ -169,100 +325,35 @@ export default function Dashboard() {
                 <td className="p-2">
                   ${asset.buyPrice}
                 </td>
-
-                {/* Current Price */}
-                <td
-                  className="p-2 text-green-400"
-                  suppressHydrationWarning
-                >
-                  {fetchingPrices ? (
-                    <span className="animate-pulse text-gray-400">
-                      Fetching...
-                    </span>
-                  ) : (
-                    `$${
-                      asset.currentPrice?.toFixed(
-                        2
-                      ) || "0.00"
-                    }`
-                  )}
+                <td className="p-2 text-green-400">
+                  {asset.currentPrice
+                    ? `$${asset.currentPrice}`
+                    : "Fetching..."}
                 </td>
-
-                {/* Total Value */}
-                <td
-                  className="p-2 text-yellow-400"
-                  suppressHydrationWarning
-                >
-                  {fetchingPrices ? (
-                    <span className="animate-pulse text-gray-400">
-                      Updating...
-                    </span>
-                  ) : (
-                    `$${
-                      asset.currentValue?.toFixed(
-                        2
-                      ) || "0.00"
-                    }`
-                  )}
+                <td className="p-2 text-yellow-400">
+                  {asset.value
+                    ? `$${asset.value.toFixed(2)}`
+                    : "Calculating..."}
                 </td>
-
-                {/* Profit/Loss */}
                 <td
-                  className={`p-2 font-semibold ${
-                    asset.profitLoss > 0
+                  className={`p-2 ${
+                    asset.profitLossPercent > 0
                       ? "text-green-400"
-                      : asset.profitLoss < 0
-                      ? "text-red-400"
-                      : "text-gray-400"
+                      : "text-red-400"
                   }`}
-                  suppressHydrationWarning
                 >
-                  {fetchingPrices ? (
-                    <span className="animate-pulse text-gray-400">
-                      —
-                    </span>
-                  ) : (
-                    <>
-                      {asset.profitLoss > 0
-                        ? "▲"
-                        : asset.profitLoss < 0
-                        ? "▼"
-                        : "•"}{" "}
-                      {(
-                        Number(
-                          asset.profitLossPercent
-                        ) || 0
-                      ).toFixed(2)}
-                      %
-                    </>
-                  )}
+                  {asset.profitLossPercent
+                    ? `${asset.profitLossPercent.toFixed(
+                        2
+                      )}%`
+                    : "—"}
                 </td>
-
-                {/* Delete Button */}
                 <td className="p-2">
                   <button
-                    onClick={async () => {
-                      const token =
-                        localStorage.getItem(
-                          "token"
-                        );
-                      await fetch(
-                        `http://localhost:5000/api/assets/${asset._id}`,
-                        {
-                          method: "DELETE",
-                          headers: {
-                            Authorization: `Bearer ${token}`,
-                          },
-                        }
-                      );
-                      setAssets(
-                        assets.filter(
-                          (a) =>
-                            a._id !== asset._id
-                        )
-                      );
-                    }}
-                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm cursor-pointer"
+                    onClick={() =>
+                      handleDelete(asset._id)
+                    }
+                    className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-sm cursor-pointer"
                   >
                     Delete
                   </button>
