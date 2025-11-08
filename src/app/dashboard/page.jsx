@@ -1,38 +1,43 @@
 "use client";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import {
+  showToast,
+  clearAllToasts,
+} from "@/utils/toastManager";
 
 export default function Dashboard() {
   const [assets, setAssets] = useState([]);
-  const [coins, setCoins] = useState([]);
-  const [search, setSearch] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    symbol: "",
-    quantity: "",
-    buyPrice: "",
-  });
   const [totalValue, setTotalValue] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] =
+    useState(null);
 
   const API_BASE =
     process.env.NEXT_PUBLIC_API_URL;
+  const COINGECKO_API =
+    process.env.NEXT_PUBLIC_COINGECKO_API;
+  const router = useRouter();
 
-  // ✅ Fetch available coins (top 100)
+  // ✅ Load cached portfolio first for instant display
   useEffect(() => {
-    fetch(
-      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1"
-    )
-      .then((res) => res.json())
-      .then((data) => setCoins(data))
-      .catch(() =>
-        toast.error("Failed to load coins data")
-      );
+    const cached = localStorage.getItem(
+      "portfolioCache"
+    );
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      setAssets(parsed.assets || []);
+      setTotalValue(parsed.totalValue || 0);
+      setLastUpdated(parsed.lastUpdated || null);
+      setLoading(false);
+    }
   }, []);
 
-  // ✅ Fetch user's assets
+  // ✅ Fetch user's portfolio
   const fetchAssets = async () => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) return [];
+
     try {
       const res = await fetch(
         `${API_BASE}/api/assets`,
@@ -46,130 +51,98 @@ export default function Dashboard() {
         throw new Error("Error fetching assets");
       const data = await res.json();
       setAssets(data);
-    } catch (err) {
-      toast.error("Unable to load portfolio.");
+      return data;
+    } catch {
+      showToast(
+        "fetchError",
+        "Unable to load your portfolio.",
+        "error"
+      );
+      return [];
     }
   };
 
-  // ✅ Fetch live prices & calculate portfolio total
-  const fetchPrices = async () => {
-    if (assets.length === 0) return;
-    const ids = assets
+  // ✅ Fetch live prices from CoinGecko and cache
+  const fetchPrices = async (assetsData) => {
+    if (!assetsData || assetsData.length === 0)
+      return;
+
+    const ids = assetsData
       .map((a) => a.name.toLowerCase())
       .join(",");
+
     try {
       const res = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+        `${COINGECKO_API}/simple/price?ids=${ids}&vs_currencies=usd`
       );
       const prices = await res.json();
 
       let total = 0;
-      const updated = assets.map((a) => {
+      const updated = assetsData.map((a) => {
         const currentPrice =
-          prices[a.name.toLowerCase()]?.usd || 0;
+          prices[a.name.toLowerCase()]?.usd ||
+          a.buyPrice;
         const value = currentPrice * a.quantity;
         total += value;
-        const profitLoss =
-          (currentPrice - a.buyPrice) *
-          a.quantity;
         const profitLossPercent =
           ((currentPrice - a.buyPrice) /
             a.buyPrice) *
           100;
-
         return {
           ...a,
           currentPrice,
           value,
-          profitLoss,
           profitLossPercent,
         };
       });
 
       setAssets(updated);
       setTotalValue(total);
+      setLastUpdated(
+        new Date().toLocaleTimeString()
+      );
+
+      // ✅ Cache the data for instant reload next time
+      localStorage.setItem(
+        "portfolioCache",
+        JSON.stringify({
+          assets: updated,
+          totalValue: total,
+          lastUpdated:
+            new Date().toLocaleTimeString(),
+        })
+      );
     } catch {
-      toast.error("Failed to fetch live prices.");
+      showToast(
+        "priceError",
+        "Failed to fetch live prices.",
+        "error"
+      );
     }
   };
 
+  // ✅ Load portfolio and prices
+  const loadPortfolio = async () => {
+    setLoading(true);
+    const fetchedAssets = await fetchAssets();
+    if (fetchedAssets.length > 0)
+      await fetchPrices(fetchedAssets);
+    setLoading(false);
+  };
+
+  // ✅ Auto-load when component mounts
   useEffect(() => {
-    fetchAssets();
+    loadPortfolio();
+    return clearAllToasts;
   }, []);
 
-  useEffect(() => {
-    if (assets.length > 0) fetchPrices();
-  }, [assets.length]);
-
-  // ✅ Handle input changes
-  const handleChange = (e) =>
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-
-  const handleSelectCoin = (coin) => {
-    setForm({
-      ...form,
-      name: coin.id,
-      symbol: coin.symbol.toUpperCase(),
-    });
-    setSearch("");
-  };
-
-  // ✅ Add new asset with toast feedback
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    const toastId = toast.loading(
-      "Adding asset..."
-    );
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/assets`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(form),
-        }
-      );
-
-      toast.dismiss(toastId);
-
-      if (res.ok) {
-        const newAsset = await res.json();
-        setAssets([newAsset, ...assets]);
-        setForm({
-          name: "",
-          symbol: "",
-          quantity: "",
-          buyPrice: "",
-        });
-        toast.success(
-          "Asset added successfully!"
-        );
-      } else {
-        const err = await res.json();
-        toast.error(
-          err.message || "Failed to add asset."
-        );
-      }
-    } catch {
-      toast.dismiss(toastId);
-      toast.error(
-        "Network error. Try again later."
-      );
-    }
-  };
-
-  // ✅ Delete asset with toast feedback
+  // ✅ Delete an asset
   const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
-    const toastId = toast.loading(
-      "Removing asset..."
+    showToast(
+      "deleteLoading",
+      "Removing asset...",
+      "loading"
     );
     try {
       const res = await fetch(
@@ -181,188 +154,182 @@ export default function Dashboard() {
           },
         }
       );
-      toast.dismiss(toastId);
 
       if (res.ok) {
-        setAssets(
-          assets.filter((a) => a._id !== id)
+        const updated = assets.filter(
+          (a) => a._id !== id
         );
-        toast.success(
-          "Asset removed successfully!"
+        setAssets(updated);
+        showToast(
+          "deleteSuccess",
+          "Asset removed successfully!",
+          "success"
         );
+        // Remove cached data
+        localStorage.removeItem("portfolioCache");
       } else {
-        toast.error("Failed to remove asset.");
+        showToast(
+          "deleteError",
+          "Failed to remove asset.",
+          "error"
+        );
       }
     } catch {
-      toast.dismiss(toastId);
-      toast.error("Something went wrong.");
+      showToast(
+        "deleteFail",
+        "Something went wrong.",
+        "error"
+      );
     }
   };
 
+  // ✅ Skeleton loader for smooth UX
+  const Skeleton = ({ width }) => (
+    <div
+      className={`h-4 ${width} bg-gray-800 animate-pulse rounded`}
+    />
+  );
+
   return (
     <main className="min-h-screen bg-gray-950 text-white p-6 md:p-8">
-      <h1 className="text-3xl font-bold mb-6 text-center md:text-left">
-        💰 Your Crypto Portfolio
-      </h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+        <h1 className="text-3xl font-bold text-center md:text-left">
+          💰 Your Crypto Portfolio
+        </h1>
 
-      {/* Add Form */}
-      <form
-        onSubmit={handleAdd}
-        className="mb-8 flex flex-wrap gap-4 items-end justify-center md:justify-start"
-      >
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search or Select Coin"
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            className="p-2 rounded bg-gray-800 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {search && (
-            <div className="absolute top-10 bg-gray-900 border border-gray-700 w-64 max-h-48 overflow-y-auto rounded-lg shadow-lg z-10">
-              {coins
-                .filter(
-                  (c) =>
-                    c.name
-                      .toLowerCase()
-                      .includes(
-                        search.toLowerCase()
-                      ) ||
-                    c.symbol
-                      .toLowerCase()
-                      .includes(
-                        search.toLowerCase()
-                      )
-                )
-                .map((coin) => (
-                  <div
-                    key={coin.id}
-                    onClick={() =>
-                      handleSelectCoin(coin)
-                    }
-                    className="flex items-center gap-2 p-2 hover:bg-gray-800 cursor-pointer"
-                  >
-                    <img
-                      src={coin.image}
-                      alt={coin.name}
-                      className="w-5 h-5"
-                    />
-                    <span>
-                      {coin.name} (
-                      {coin.symbol.toUpperCase()})
-                    </span>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-
-        <input
-          name="quantity"
-          type="number"
-          placeholder="Quantity"
-          value={form.quantity}
-          onChange={handleChange}
-          className="p-2 rounded bg-gray-800 w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          name="buyPrice"
-          type="number"
-          placeholder="Buy Price (USD)"
-          value={form.buyPrice}
-          onChange={handleChange}
-          className="p-2 rounded bg-gray-800 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
         <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold cursor-pointer"
+          onClick={() => router.push("/coins")}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md mt-4 md:mt-0 cursor-pointer"
         >
-          Add
+          ➕ Add New Asset
         </button>
-      </form>
-
-      <div className="mb-4 text-lg font-semibold text-center md:text-left">
-        Total Portfolio Value:{" "}
-        <span className="text-green-400">
-          ${totalValue.toFixed(2)}
-        </span>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[800px]">
-          <thead>
-            <tr className="border-b border-gray-700 text-sm text-gray-400">
-              <th className="p-2">Coin</th>
-              <th className="p-2">Symbol</th>
-              <th className="p-2">Quantity</th>
-              <th className="p-2">Buy Price</th>
-              <th className="p-2">
-                Current Price
-              </th>
-              <th className="p-2">Total Value</th>
-              <th className="p-2">P/L (%)</th>
-              <th className="p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assets.map((asset) => (
-              <tr
-                key={asset._id}
-                className="border-b border-gray-800"
-              >
-                <td className="p-2">
-                  {asset.name}
-                </td>
-                <td className="p-2">
-                  {asset.symbol}
-                </td>
-                <td className="p-2">
-                  {asset.quantity}
-                </td>
-                <td className="p-2">
-                  ${asset.buyPrice}
-                </td>
-                <td className="p-2 text-green-400">
-                  {asset.currentPrice
-                    ? `$${asset.currentPrice}`
-                    : "Fetching..."}
-                </td>
-                <td className="p-2 text-yellow-400">
-                  {asset.value
-                    ? `$${asset.value.toFixed(2)}`
-                    : "Calculating..."}
-                </td>
-                <td
-                  className={`p-2 ${
-                    asset.profitLossPercent > 0
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {asset.profitLossPercent
-                    ? `${asset.profitLossPercent.toFixed(
-                        2
-                      )}%`
-                    : "—"}
-                </td>
-                <td className="p-2">
-                  <button
-                    onClick={() =>
-                      handleDelete(asset._id)
-                    }
-                    className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-sm cursor-pointer"
+      {lastUpdated && (
+        <p className="text-sm text-gray-400 mb-4 text-center md:text-left">
+          Last updated: {lastUpdated}{" "}
+          <button
+            onClick={() => fetchPrices(assets)}
+            className="text-blue-400 hover:text-blue-500 underline cursor-pointer"
+          >
+            Refresh
+          </button>
+        </p>
+      )}
+
+      {loading ? (
+        <div className="text-center text-gray-400 mt-20 animate-pulse">
+          Loading your portfolio...
+        </div>
+      ) : assets.length === 0 ? (
+        <div className="text-center text-gray-400 mt-20">
+          You haven’t added any assets yet.
+          <br />
+          <button
+            onClick={() => router.push("/coins")}
+            className="text-blue-400 hover:text-blue-500 underline mt-2 cursor-pointer"
+          >
+            Add your first asset
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 text-lg font-semibold text-center md:text-left">
+            Total Portfolio Value:{" "}
+            <span className="text-green-400">
+              ${totalValue.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="border-b border-gray-700 text-sm text-gray-400">
+                  <th className="p-2">Coin</th>
+                  <th className="p-2">Symbol</th>
+                  <th className="p-2">
+                    Quantity
+                  </th>
+                  <th className="p-2">
+                    Buy Price
+                  </th>
+                  <th className="p-2">
+                    Current Price
+                  </th>
+                  <th className="p-2">
+                    Total Value
+                  </th>
+                  <th className="p-2">P/L (%)</th>
+                  <th className="p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map((asset) => (
+                  <tr
+                    key={asset._id}
+                    className="border-b border-gray-800 hover:bg-gray-900 transition-all"
                   >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    <td className="p-2">
+                      {asset.name}
+                    </td>
+                    <td className="p-2">
+                      {asset.symbol}
+                    </td>
+                    <td className="p-2">
+                      {asset.quantity}
+                    </td>
+                    <td className="p-2">
+                      ${asset.buyPrice}
+                    </td>
+
+                    {/* ✅ Smooth skeleton loader for price/value */}
+                    <td className="p-2 text-green-400">
+                      {asset.currentPrice ? (
+                        `$${asset.currentPrice}`
+                      ) : (
+                        <Skeleton width="w-16" />
+                      )}
+                    </td>
+                    <td className="p-2 text-yellow-400">
+                      {asset.value ? (
+                        `$${asset.value.toFixed(
+                          2
+                        )}`
+                      ) : (
+                        <Skeleton width="w-20" />
+                      )}
+                    </td>
+                    <td
+                      className={`p-2 ${
+                        asset.profitLossPercent >
+                        0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {asset.profitLossPercent
+                        ? `${asset.profitLossPercent.toFixed(
+                            2
+                          )}%`
+                        : "—"}
+                    </td>
+                    <td className="p-2">
+                      <button
+                        onClick={() =>
+                          handleDelete(asset._id)
+                        }
+                        className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-sm cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </main>
   );
 }
