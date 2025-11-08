@@ -37,8 +37,9 @@ export default function Signup() {
         }
       );
 
+      clearAllToasts();
+
       if (res.ok) {
-        clearAllToasts();
         showToast(
           "signupSuccess",
           "Account created successfully!",
@@ -54,6 +55,7 @@ export default function Signup() {
         );
       }
     } catch {
+      clearAllToasts();
       showToast(
         "signupFail",
         "Network error. Try again later.",
@@ -63,15 +65,21 @@ export default function Signup() {
   };
 
   return (
-    <main className="flex justify-center items-center min-h-screen bg-gray-950 text-white">
+    <main className="flex justify-center items-center min-h-screen bg-gray-950 text-white px-4">
       <form
         onSubmit={handleSignup}
-        className="bg-gray-900 p-8 rounded-xl shadow-lg w-96"
+        className="bg-gray-900 p-8 rounded-xl shadow-lg w-full max-w-md"
       >
-        <h1 className="text-2xl font-bold mb-6 text-center">
+        <h1 className="text-3xl font-extrabold mb-2 text-center">
           Create Account
         </h1>
-        <label className="block mb-2">
+        <p className="text-gray-400 mb-6 text-center text-sm">
+          Join CryptoVault and start tracking your
+          portfolio today
+        </p>
+
+        {/* Email Input */}
+        <label className="block mb-2 text-sm font-medium">
           Email
         </label>
         <input
@@ -80,10 +88,13 @@ export default function Signup() {
           onChange={(e) =>
             setEmail(e.target.value)
           }
-          className="w-full p-2 rounded bg-gray-800 mb-4"
+          className="w-full p-2 rounded bg-gray-800 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="you@example.com"
           required
         />
-        <label className="block mb-2">
+
+        {/* Password Input */}
+        <label className="block mb-2 text-sm font-medium">
           Password
         </label>
         <input
@@ -92,15 +103,29 @@ export default function Signup() {
           onChange={(e) =>
             setPassword(e.target.value)
           }
-          className="w-full p-2 rounded bg-gray-800 mb-6"
+          className="w-full p-2 rounded bg-gray-800 mb-6 focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="••••••••"
           required
         />
+
+        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold cursor-pointer"
+          className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold cursor-pointer transition"
         >
           Sign Up
         </button>
+
+        {/* Redirect to Login */}
+        <p className="text-gray-400 text-sm text-center mt-4">
+          Already have an account?{" "}
+          <span
+            onClick={() => router.push("/login")}
+            className="text-green-400 hover:text-green-500 cursor-pointer font-medium"
+          >
+            Log in here
+          </span>
+        </p>
       </form>
     </main>
   );
