@@ -9,30 +9,40 @@ import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
-  const pathname = usePathname(); // 🧭 Detect current route
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] =
     useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Check auth status
+  // 🔁 Check login status and update reactively
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      setIsLoggedIn(!!token);
+    };
+    checkAuth();
+    window.addEventListener("storage", checkAuth);
+    return () =>
+      window.removeEventListener(
+        "storage",
+        checkAuth
+      );
   }, []);
 
+  // ✅ Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
     router.push("/login");
   };
 
+  // ✅ Dashboard redirect logic
   const handleDashboardClick = () => {
     const token = localStorage.getItem("token");
-    if (token) router.push("/dashboard");
-    else router.push("/login");
+    router.push(token ? "/dashboard" : "/login");
   };
 
-  // Helper: add active style
+  // ✅ Active link style helper
   const getLinkClass = (href) => {
     const isActive = pathname === href;
     return isActive
@@ -54,30 +64,28 @@ export default function Navbar() {
       <div className="hidden md:flex gap-6 text-sm items-center">
         <Link
           href="/"
-          className={`${getLinkClass("/")}`}
+          className={getLinkClass("/")}
         >
           Home
         </Link>
-
         <Link
           href="/coins"
-          className={`${getLinkClass("/coins")}`}
+          className={getLinkClass("/coins")}
         >
           Coins
         </Link>
 
-        {/* Dashboard button always visible */}
-        <button
-          onClick={handleDashboardClick}
-          className={`bg-transparent border-none cursor-pointer ${
-            pathname === "/dashboard"
-              ? "text-blue-400 font-semibold border-b-2 border-blue-400 pb-1"
-              : "hover:text-blue-400 text-gray-300"
-          }`}
+        {/* Dashboard (as Link) */}
+        <Link
+          href={
+            isLoggedIn ? "/dashboard" : "/login"
+          }
+          className={getLinkClass("/dashboard")}
         >
           Dashboard
-        </button>
+        </Link>
 
+        {/* Auth Button */}
         {isLoggedIn ? (
           <button
             onClick={handleLogout}
@@ -86,16 +94,16 @@ export default function Navbar() {
             Logout
           </button>
         ) : (
-          <button
-            onClick={() => router.push("/login")}
-            className={`cursor-pointer ${
+          <Link
+            href="/login"
+            className={
               pathname === "/login"
                 ? "text-blue-400 font-semibold"
                 : "text-green-400 hover:text-green-500"
-            }`}
+            }
           >
             Login
-          </button>
+          </Link>
         )}
       </div>
 
@@ -117,61 +125,49 @@ export default function Navbar() {
           <Link
             href="/"
             onClick={() => setMenuOpen(false)}
-            className={`${getLinkClass("/")}`}
+            className={getLinkClass("/")}
           >
             Home
           </Link>
-
           <Link
             href="/coins"
             onClick={() => setMenuOpen(false)}
-            className={`${getLinkClass(
-              "/coins"
-            )}`}
+            className={getLinkClass("/coins")}
           >
             Coins
           </Link>
-
-          {/* Dashboard */}
-          <button
-            onClick={() => {
-              const token =
-                localStorage.getItem("token");
-              setMenuOpen(false);
-              if (token)
-                router.push("/dashboard");
-              else router.push("/login");
-            }}
-            className={`text-left cursor-pointer ${
-              pathname === "/dashboard"
-                ? "text-blue-400 font-semibold border-b-2 border-blue-400 pb-1"
-                : "hover:text-blue-400 text-gray-300"
-            }`}
+          <Link
+            href={
+              isLoggedIn ? "/dashboard" : "/login"
+            }
+            onClick={() => setMenuOpen(false)}
+            className={getLinkClass("/dashboard")}
           >
             Dashboard
-          </button>
+          </Link>
 
           {isLoggedIn ? (
             <button
-              onClick={handleLogout}
-              className="text-red-400 text-left cursor-pointer"
+              onClick={() => {
+                handleLogout();
+                setMenuOpen(false);
+              }}
+              className="text-red-400 text-left cursor-pointer hover:text-red-500"
             >
               Logout
             </button>
           ) : (
-            <button
-              onClick={() => {
-                router.push("/login");
-                setMenuOpen(false);
-              }}
-              className={`text-left cursor-pointer ${
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              className={
                 pathname === "/login"
                   ? "text-blue-400 font-semibold"
                   : "text-green-400 hover:text-green-500"
-              }`}
+              }
             >
               Login
-            </button>
+            </Link>
           )}
         </div>
       )}
