@@ -193,15 +193,28 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-gray-950 text-white p-6 md:p-8">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-        <h1 className="text-3xl font-bold text-center md:text-left">
-          💰 Your Crypto Portfolio
-        </h1>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex justify-center md:justify-start items-center gap-2">
+            <span
+              role="img"
+              aria-label="money-bag"
+            >
+              💰
+            </span>
+            <span>Your Crypto Portfolio</span>
+          </h1>
+
+          <p className="text-gray-400 text-sm md:text-base">
+            View, track, and manage your holdings
+            in real time
+          </p>
+        </div>
 
         <button
           onClick={() => router.push("/coins")}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md mt-4 md:mt-0 cursor-pointer"
         >
-          ➕ Add New Asset
+          Add New Asset
         </button>
       </div>
 
@@ -216,6 +229,7 @@ export default function Dashboard() {
           </button>
         </p>
       )}
+      <div className="h-px bg-linear-to-r from-transparent via-gray-700 to-transparent my-4" />
 
       {loading ? (
         <div className="text-center text-gray-400 mt-20 animate-pulse">

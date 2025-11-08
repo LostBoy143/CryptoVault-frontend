@@ -173,21 +173,31 @@ export default function CoinsPage() {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white p-6 md:p-8">
-      <h1 className="text-3xl font-bold mb-6 text-center md:text-left">
-        💹 Live Crypto Market
-      </h1>
+      <div className="text-center md:text-left mb-6 space-y-2">
+        <h1 className="text-2xl md:text-3xl font-bold flex justify-center md:justify-start items-center gap-2">
+          <span role="img" aria-label="chart">
+            📈
+          </span>
+          <span>Live Crypto Market</span>
+        </h1>
 
-      {/* Search Bar */}
-      <div className="flex justify-center md:justify-start mb-6">
-        <input
-          type="text"
-          placeholder="Search coins..."
-          value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-          className="p-2 rounded bg-gray-800 w-72 md:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <p className="text-gray-400 text-sm md:text-base">
+          Track live prices and market updates in
+          real time
+        </p>
+        <div className="h-px bg-linear-to-r from-transparent via-gray-700 to-transparent my-4" />
+
+        <div className="mt-4 flex justify-center md:justify-start">
+          <input
+            type="text"
+            placeholder="Search coins..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            className="w-72 sm:w-80 p-2 rounded bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       {/* Loader */}
@@ -197,9 +207,10 @@ export default function CoinsPage() {
         </div>
       ) : (
         <div className="overflow-x-auto relative">
-          <div className="absolute right-2 top-2 text-xs text-gray-500">
-            ← Scroll →
-          </div>
+          {/* Scroll Hint */}
+          <p className="text-gray-500 text-xs text-center md:text-left mt-2">
+            ← Scroll horizontally to see more →
+          </p>
           <table className="w-full border-collapse text-left min-w-[800px]">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400">

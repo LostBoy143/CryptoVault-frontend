@@ -6,14 +6,14 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main className="bg-gradient-to-b from-[#050816] via-[#0a0f2c] to-[#0f172a] text-white overflow-x-hidden">
+    <main className="bg-linear-to-b from-[#050816] via-[#0a0f2c] to-[#0f172a] text-white overflow-x-hidden">
       {/* Hero Section */}
       <section className="min-h-[90vh] flex flex-col justify-center items-center text-center px-6 py-16 relative">
         {/* Background glow effect */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[600px] h-[600px] bg-blue-500/30 rounded-full blur-[180px] opacity-60 -z-10" />
 
         <Reveal>
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
             Track. Analyze. Grow. <br />
             <span className="text-blue-400">
               Your Crypto Portfolio.
@@ -22,7 +22,7 @@ export default function HomePage() {
         </Reveal>
 
         <Reveal delay={0.2}>
-          <p className="text-gray-300 text-lg mb-8 max-w-2xl">
+          <p className="text-gray-300 text-md md:text-lg mb-8 max-w-2xl">
             Track, analyze, and grow your digital
             assets in real-time. A modern crypto
             tracker that looks as good as it
@@ -37,7 +37,7 @@ export default function HomePage() {
               onClick={() =>
                 router.push("/coins")
               }
-              className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-md shadow-blue-500/30 transition"
+              className="bg-blue-600 hover:bg-blue-700 px-10 py-3 rounded-lg font-semibold cursor-pointer shadow-md shadow-blue-500/30 transition"
             >
               Explore Coins
             </button>
@@ -53,7 +53,7 @@ export default function HomePage() {
                   router.push("/login");
                 }
               }}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-md shadow-green-400/30 transition"
+              className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-md shadow-green-400/30 transition"
             >
               View Dashboard
             </button>
@@ -64,7 +64,7 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="py-24 px-6 bg-[#0b1120]/80 text-center backdrop-blur-md">
         <Reveal>
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">
+          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-green-400">
             🚀 Why Choose CryptoVault?
           </h2>
         </Reveal>
@@ -98,11 +98,11 @@ export default function HomePage() {
             {
               icon: "🌐",
               title: "Free Forever",
-              desc: "Completely free and built for transparency.",
+              desc: "Completely free and built for your all Crypto tracking needs.",
             },
           ].map((f, i) => (
             <Reveal key={f.title} delay={i * 0.1}>
-              <div className="bg-gradient-to-br from-[#111827] to-[#1f2937] p-6 rounded-xl hover:scale-105 transition-transform duration-300 border border-gray-800/60">
+              <div className="bg-linear-to-br from-[#111827] to-[#1f2937] p-6 rounded-xl hover:scale-105 transition-transform duration-300 border border-gray-800/60">
                 <div className="text-4xl mb-3">
                   {f.icon}
                 </div>
@@ -118,8 +118,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Redesigned How It Works Section */}
-      <section className="py-24 px-6 text-center bg-gradient-to-br from-[#0f172a] via-[#101830] to-[#0b1120] relative overflow-hidden">
+      {/* How It Works Section */}
+      <section className="py-24 px-6 text-center bg-linear-to-br from-[#0f172a] via-[#101830] to-[#0b1120] relative overflow-hidden">
         {/* subtle moving glow */}
         <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-green-400/20 blur-[150px] rounded-full -z-10" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-400/20 blur-[150px] rounded-full -z-10" />
@@ -178,7 +178,7 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <Reveal>
-        <section className="py-20 bg-gradient-to-r from-blue-600 to-green-600 text-center text-white relative overflow-hidden">
+        <section className="py-20 bg-linear-to-r from-blue-800 to-green-400 text-center text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.15),transparent_60%)] -z-10" />
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Start Your Journey?
@@ -199,7 +199,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-6 text-center text-gray-400 bg-[#0b1120] border-t border-gray-800">
         © {new Date().getFullYear()} CryptoVault —
-        Built with ❤️ by Shubham Singh
+        Built with ❤️ and passion.
       </footer>
     </main>
   );
