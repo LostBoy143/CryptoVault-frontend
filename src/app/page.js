@@ -52,7 +52,7 @@ export default function HomePage() {
               onClick={() =>
                 router.push("/coins")
               }
-              className="bg-blue-600 hover:bg-blue-700 px-10 py-3 rounded-lg font-semibold cursor-pointer shadow-[0_0_20px_#3b82f680] transition-transform transform hover:scale-[1.05]"
+              className="bg-blue-600 hover:bg-blue-700 px-10 py-3 rounded-lg font-semibold cursor-pointer shadow-[0_0_20px_#3b82f680] transition-transform cursor-pointer transform hover:scale-[1.05]"
             >
               Explore Coins
             </button>
@@ -66,7 +66,7 @@ export default function HomePage() {
                   router.push("/dashboard");
                 else router.push("/login");
               }}
-              className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-[0_0_20px_#34d39980] transition-transform transform hover:scale-[1.05]"
+              className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 px-8 py-3 rounded-lg font-semibold cursor-pointer shadow-[0_0_20px_#34d39980] transition-transform transform hover:scale-[1.05] cursor-pointer"
             >
               View Dashboard
             </button>
